@@ -38,6 +38,25 @@ static const char DIGIT_TABLE[200] =
 "80" "81" "82" "83" "84" "85" "86" "87" "88" "89"
 "90" "91" "92" "93" "94" "95" "96" "97" "98" "99";
 
+static bool
+numutils_isdigit(const char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+static bool
+numutils_isspace(const char c)
+{
+	if (c == ' ' ||
+		c == '\t' ||
+		c == '\n' ||
+		c == '\r' ||
+		c == '\v' ||
+		c == '\f')
+		return true;
+	return false;
+}
+
 /*
  * Adapted from http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog10
  */
@@ -161,7 +180,7 @@ pg_atoi(const char *s, int size, int c)
 	 * Skip any trailing whitespace; if anything but whitespace remains before
 	 * the terminating character, bail out
 	 */
-	while (*badp && *badp != c && isspace((unsigned char) *badp))
+	while (*badp && *badp != c && numutils_isspace(*badp))
 		badp++;
 
 	if (*badp && *badp != c)
@@ -191,7 +210,7 @@ pg_strtoint16(const char *s)
 	bool		neg = false;
 
 	/* skip leading spaces */
-	while (likely(*ptr) && isspace((unsigned char) *ptr))
+	while (numutils_isspace(*ptr))
 		ptr++;
 
 	/* handle sign */
@@ -204,11 +223,11 @@ pg_strtoint16(const char *s)
 		ptr++;
 
 	/* require at least one digit */
-	if (unlikely(!isdigit((unsigned char) *ptr)))
+	if (unlikely(!numutils_isdigit(*ptr)))
 		goto invalid_syntax;
 
 	/* process digits */
-	while (*ptr && isdigit((unsigned char) *ptr))
+	while (numutils_isdigit(*ptr))
 	{
 		int8		digit = (*ptr++ - '0');
 
@@ -218,7 +237,7 @@ pg_strtoint16(const char *s)
 	}
 
 	/* allow trailing whitespace, but not other trailing chars */
-	while (*ptr != '\0' && isspace((unsigned char) *ptr))
+	while (numutils_isspace(*ptr))
 		ptr++;
 
 	if (unlikely(*ptr != '\0'))
@@ -267,7 +286,7 @@ pg_strtoint32(const char *s)
 	bool		neg = false;
 
 	/* skip leading spaces */
-	while (likely(*ptr) && isspace((unsigned char) *ptr))
+	while (numutils_isspace(*ptr))
 		ptr++;
 
 	/* handle sign */
@@ -280,11 +299,11 @@ pg_strtoint32(const char *s)
 		ptr++;
 
 	/* require at least one digit */
-	if (unlikely(!isdigit((unsigned char) *ptr)))
+	if (unlikely(!numutils_isdigit(*ptr)))
 		goto invalid_syntax;
 
 	/* process digits */
-	while (*ptr && isdigit((unsigned char) *ptr))
+	while (numutils_isdigit(*ptr))
 	{
 		int8		digit = (*ptr++ - '0');
 
@@ -294,7 +313,7 @@ pg_strtoint32(const char *s)
 	}
 
 	/* allow trailing whitespace, but not other trailing chars */
-	while (*ptr != '\0' && isspace((unsigned char) *ptr))
+	while (numutils_isspace(*ptr))
 		ptr++;
 
 	if (unlikely(*ptr != '\0'))

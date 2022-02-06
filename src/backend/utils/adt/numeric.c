@@ -597,6 +597,25 @@ static void accum_sum_final(NumericSumAccum *accum, NumericVar *result);
 static void accum_sum_copy(NumericSumAccum *dst, NumericSumAccum *src);
 static void accum_sum_combine(NumericSumAccum *accum, NumericSumAccum *accum2);
 
+static bool
+numeric_isdigit(const char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+static bool
+numeric_isspace(const char c)
+{
+	if (c == ' ' ||
+		c == '\t' ||
+		c == '\n' ||
+		c == '\r' ||
+		c == '\v' ||
+		c == '\f')
+		return true;
+	return false;
+}
+
 
 /* ----------------------------------------------------------------------
  *
@@ -627,7 +646,7 @@ numeric_in(PG_FUNCTION_ARGS)
 	cp = str;
 	while (*cp)
 	{
-		if (!isspace((unsigned char) *cp))
+		if (!numeric_isspace(*cp))
 			break;
 		cp++;
 	}
@@ -690,7 +709,7 @@ numeric_in(PG_FUNCTION_ARGS)
 		 */
 		while (*cp)
 		{
-			if (!isspace((unsigned char) *cp))
+			if (!numeric_isspace(*cp))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 						 errmsg("invalid input syntax for type %s: \"%s\"",
@@ -709,7 +728,7 @@ numeric_in(PG_FUNCTION_ARGS)
 	/* Should be nothing left but spaces */
 	while (*cp)
 	{
-		if (!isspace((unsigned char) *cp))
+		if (!numeric_isspace(*cp))
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 					 errmsg("invalid input syntax for type %s: \"%s\"",
@@ -6846,7 +6865,7 @@ set_var_from_str(const char *str, const char *cp, NumericVar *dest)
 		cp++;
 	}
 
-	if (!isdigit((unsigned char) *cp))
+	if (!numeric_isdigit(*cp))
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 				 errmsg("invalid input syntax for type %s: \"%s\"",
@@ -6860,7 +6879,7 @@ set_var_from_str(const char *str, const char *cp, NumericVar *dest)
 
 	while (*cp)
 	{
-		if (isdigit((unsigned char) *cp))
+		if (numeric_isdigit(*cp))
 		{
 			decdigits[i++] = *cp++ - '0';
 			if (!have_dp)
