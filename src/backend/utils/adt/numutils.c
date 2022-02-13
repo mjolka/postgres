@@ -268,6 +268,83 @@ invalid_syntax:
 	return 0;					/* keep compiler quiet */
 }
 
+int32
+out_of_range(const char *s)
+{
+	ereport(ERROR,
+		(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+			errmsg("value \"%s\" is out of range for type %s",
+				s, "integer")));
+
+	return 0;
+}
+
+int32
+invalid_syntax(const char* s)
+{
+	ereport(ERROR,
+		(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+			errmsg("invalid input syntax for type %s: \"%s\"",
+				"integer", s)));
+
+	return 0;
+}
+
+const char *
+eat_space(const char *s)
+{
+	while (numutils_isspace(*s))
+	{
+		s++;
+	}
+
+	return s;
+}
+
+int32
+mc_negstrtoint32(const char *s, const char *ptr)
+{
+	uint64 tmp = 0;
+	const uint64 max = (uint64)PG_INT32_MAX + 1;
+
+	while (numutils_isdigit(*ptr))
+	{
+		const uint32 digit = *ptr++ - '0';
+
+		tmp = tmp * 10 + digit;
+
+		if (tmp > max)
+			return out_of_range(s);
+	}
+
+	if (unlikely(*eat_space(ptr) != '\0'))
+		return invalid_syntax(s);
+
+	return tmp == max ? PG_INT32_MIN : -(int32)tmp;
+}
+
+int32
+mc_nonnegstrtoint32(const char *s, const char *ptr)
+{
+	uint64 tmp = 0;
+	const uint64 max = (uint64)PG_INT32_MAX;
+
+	while (numutils_isdigit(*ptr))
+	{
+		const uint64 digit = *ptr++ - '0';
+
+		tmp = tmp * 10 + digit;
+
+		if (tmp > max)
+			return out_of_range(s);
+	}
+
+	if (unlikely(*eat_space(ptr) != '\0'))
+		return invalid_syntax(s);
+
+	return (int32)tmp;
+}
+
 /*
  * Convert input string to a signed 32 bit integer.
  *
@@ -279,7 +356,31 @@ invalid_syntax:
  * positive number.
  */
 int32
-pg_strtoint32(const char *s)
+pg_strtoint32(const char* s)
+{
+	/* skip leading spaces */
+	const char *ptr = eat_space(s);
+
+	if (numutils_isdigit(*ptr))
+	{
+		return mc_nonnegstrtoint32(s, ptr);
+	}
+
+	if (*ptr == '-' && numutils_isdigit(ptr[1]))
+	{
+		return mc_negstrtoint32(s, ptr + 1);
+	}
+
+	if (*ptr == '+' && numutils_isdigit(ptr[1]))
+	{
+		return mc_nonnegstrtoint32(s, ptr + 1);
+	}
+
+	return invalid_syntax(s);
+}
+
+int32
+unused(const char *s)
 {
 	const char *ptr = s;
 	int32		tmp = 0;
